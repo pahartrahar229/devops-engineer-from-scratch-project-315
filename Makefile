@@ -60,3 +60,7 @@ rollback:
 		--vault-password-file $(VAULT_PASS_FILE) \
 		-e docker_image_tag=$(TAG)
 
+.PHONY: setup
+
+setup:
+	ansible-galaxy role install -r ansible/requirements.yml

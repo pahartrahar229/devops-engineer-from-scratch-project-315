@@ -63,4 +63,4 @@ rollback:
 .PHONY: setup
 
 setup:
-	ansible-galaxy role install -r ansible/requirements.yml
+	ansible-galaxy install -r ansible/requirements.yml

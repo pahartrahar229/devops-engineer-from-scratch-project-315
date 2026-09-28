@@ -1,4 +1,4 @@
-[![CI](https://github.com/pahartrahar229/project-devops-deploy/actions/workflows/ci.yml/badge.svg)](https://github.com/pahartrahar229/project-devops-deploy/actions/workflows/ci.yml)
+[![CI](https://github.com/pahartrahar229/devops-engineer-from-scratch-project-315/actions/workflows/ci.yml/badge.svg)](https://github.com/pahartrahar229/devops-engineer-from-scratch-project-315/actions/workflows/ci.yml)
 
 ## DevOps: Docker-образ
 

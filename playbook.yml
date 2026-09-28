@@ -1,0 +1,92 @@
+---
+- name: Configure application server
+  hosts: app_servers
+  become: true
+
+  vars:
+    deploy_user: deploy
+    allowed_tcp_ports:
+      - 22
+      - 80
+      - 443
+    docker_users:
+      - "{{ deploy_user }}"
+      - "{{ ansible_user }}"
+
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install helper packages
+      apt:
+        name:
+          - curl
+          - git
+          - ufw
+        state: present
+
+    - name: Create deploy user
+      user:
+        name: "{{ deploy_user }}"
+        shell: /bin/bash
+        create_home: true
+
+  roles:
+    - geerlingguy.docker
+
+  tasks:
+    - name: Allow required TCP ports through firewall
+      community.general.ufw:
+        rule: allow
+        port: "{{ item | string }}"
+        proto: tcp
+      loop: "{{ allowed_tcp_ports }}"
+
+    - name: Set default incoming policy to deny
+      community.general.ufw:
+        default: deny
+        direction: incoming
+
+    - name: Set default outgoing policy to allow
+      community.general.ufw:
+        default: allow
+        direction: outgoing
+
+    - name: Enable ufw
+      community.general.ufw:
+        state: enabled
+
+    - name: Install certbot
+      ansible.builtin.apt:
+        name: certbot
+        state: present
+
+    - name: Ensure certbot webroot exists
+      ansible.builtin.file:
+        path: "{{ certbot_webroot }}"
+        state: directory
+        mode: "0755"
+
+    - name: Ensure certbot deploy hook directory exists
+      ansible.builtin.file:
+        path: /etc/letsencrypt/renewal-hooks/deploy
+        state: directory
+        mode: "0755"
+
+    - name: Install renewal hook that reloads nginx
+      ansible.builtin.copy:
+        dest: /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+        mode: "0755"
+        content: |
+          #!/bin/sh
+          set -e
+          cd {{ compose_project_dir }}
+          docker compose exec -T nginx nginx -s reload
+
+    - name: Ensure certbot renewal timer is enabled and running
+      ansible.builtin.systemd:
+        name: certbot.timer
+        enabled: true
+        state: started

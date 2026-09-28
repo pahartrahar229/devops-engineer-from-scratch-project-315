@@ -1,0 +1,122 @@
+---
+- name: Deploy application container
+  hosts: app_servers
+  become: true
+
+  tasks:
+    - name: Validate HTTPS settings
+      ansible.builtin.assert:
+        that:
+          - app_domain is defined
+          - letsencrypt_email is defined
+          - "'@' in letsencrypt_email"
+        fail_msg: "Set app_domain and letsencrypt_email in ansible/group_vars/app_servers/vars.yml"
+
+    - name: Check that certbot is installed
+      ansible.builtin.stat:
+        path: /usr/bin/certbot
+      register: certbot_bin
+
+    - name: Require provisioning first
+      ansible.builtin.assert:
+        that: certbot_bin.stat.exists
+        fail_msg: "certbot is missing, run 'make provision' first"
+
+    - name: Ensure app directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ deploy_user | default('deploy') }}"
+        group: "{{ deploy_user | default('deploy') }}"
+        mode: "0755"
+      loop:
+        - "{{ compose_project_dir }}"
+        - "{{ compose_project_dir }}/migrations"
+        - "{{ compose_project_dir }}/nginx"
+        - "{{ app_data_dir }}"
+        - "{{ app_logs_dir }}"
+
+    - name: Log in to Docker Hub
+      community.docker.docker_login:
+        registry_url: "https://index.docker.io/v1/"
+        username: "{{ dockerhub_username }}"
+        password: "{{ dockerhub_password }}"
+      no_log: true
+
+    - name: Render docker-compose file
+      ansible.builtin.template:
+        src: ansible/templates/docker-compose.yml.j2
+        dest: "{{ compose_project_dir }}/docker-compose.yml"
+        mode: "0640"
+        owner: "{{ deploy_user | default('deploy') }}"
+
+    - name: Render nginx config (HTTPS enabled only when a certificate exists)
+      ansible.builtin.include_tasks: ansible/tasks/nginx.yml
+
+    - name: Sync database migrations
+      ansible.builtin.copy:
+        src: db/migrations/
+        dest: "{{ compose_project_dir }}/migrations/"
+        owner: "{{ deploy_user | default('deploy') }}"
+        mode: "0644"
+
+    - name: Pull requested app image tag
+      community.docker.docker_image:
+        name: "{{ docker_image_name }}:{{ docker_image_tag }}"
+        source: pull
+        force_source: true
+
+    - name: Start database and wait until healthy
+      community.docker.docker_compose_v2:
+        project_src: "{{ compose_project_dir }}"
+        services:
+          - db
+        state: present
+        wait: true
+
+    - name: Run database migrations
+      ansible.builtin.command:
+        cmd: docker compose --profile migrate run --rm migrate
+        chdir: "{{ compose_project_dir }}"
+      register: migrate_result
+      changed_when: "'Successfully applied' in migrate_result.stdout"
+
+    - name: Apply compose file (recreates only changed services)
+      community.docker.docker_compose_v2:
+        project_src: "{{ compose_project_dir }}"
+        state: present
+      register: compose_result
+
+    - name: Obtain Let's Encrypt certificate
+      when: not cert_stat.stat.exists
+      block:
+        - name: Request certificate
+          ansible.builtin.command:
+            argv:
+              - certbot
+              - certonly
+              - --webroot
+              - -w
+              - "{{ certbot_webroot }}"
+              - -d
+              - "{{ app_domain }}"
+              - -m
+              - "{{ letsencrypt_email }}"
+              - --agree-tos
+              - --no-eff-email
+              - --non-interactive
+            creates: "/etc/letsencrypt/live/{{ app_domain }}/fullchain.pem"
+
+        - name: Re-render nginx config with HTTPS enabled
+          ansible.builtin.include_tasks: ansible/tasks/nginx.yml
+
+    - name: Reload nginx after config change
+      ansible.builtin.command:
+        cmd: docker compose exec -T nginx sh -c "nginx -t && nginx -s reload"
+        chdir: "{{ compose_project_dir }}"
+      when: nginx_conf.changed
+      changed_when: true
+
+    - name: Show deploy result
+      ansible.builtin.debug:
+        var: compose_result.changed

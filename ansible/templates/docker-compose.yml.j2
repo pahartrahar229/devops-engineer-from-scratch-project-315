@@ -1,0 +1,82 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: project-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "{{ db_name }}"
+      POSTGRES_USER: "{{ db_user }}"
+      POSTGRES_PASSWORD: "{{ db_password }}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ db_user }} -d {{ db_name }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    image: flyway/flyway:11
+    profiles: ["migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      FLYWAY_URL: "jdbc:postgresql://db:5432/{{ db_name }}"
+      FLYWAY_USER: "{{ db_user }}"
+      FLYWAY_PASSWORD: "{{ db_password }}"
+      FLYWAY_CONNECT_RETRIES: "10"
+    volumes:
+      - "{{ compose_project_dir }}/migrations:/flyway/sql:ro"
+    command: migrate
+
+  app:
+    image: "{{ docker_image_name }}:{{ docker_image_tag }}"
+    container_name: project-devops-deploy
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:9090:9090"
+    environment:
+      SPRING_PROFILES_ACTIVE: "prod"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://db:5432/{{ db_name }}"
+      SPRING_DATASOURCE_USERNAME: "{{ db_user }}"
+      SPRING_DATASOURCE_PASSWORD: "{{ db_password }}"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      STORAGE_S3_BUCKET: "{{ s3_bucket }}"
+      STORAGE_S3_REGION: "{{ s3_region }}"
+      STORAGE_S3_ENDPOINT: "{{ s3_endpoint }}"
+      STORAGE_S3_ACCESSKEY: "{{ app_s3_access_key }}"
+      STORAGE_S3_SECRETKEY: "{{ app_s3_secret_key }}"
+    volumes:
+      - "{{ app_data_dir }}:/app/data"
+      - "{{ app_logs_dir }}:/app/logs"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: project-nginx
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "{{ compose_project_dir }}/nginx:/etc/nginx/conf.d:ro"
+      - "/etc/letsencrypt:/etc/letsencrypt:ro"
+      - "{{ certbot_webroot }}:/var/www/certbot:ro"
+      - nginx_cache:/var/cache/nginx
+
+volumes:
+  pgdata:
+  nginx_cache:

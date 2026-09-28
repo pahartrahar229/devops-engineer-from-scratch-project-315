@@ -1,0 +1,18 @@
+docker_image_name: pahartrahar228/project-devops-deploy
+docker_image_tag: latest
+
+compose_project_dir: /opt/project-devops-deploy
+app_data_dir: /opt/project-devops-deploy/data
+app_logs_dir: /opt/project-devops-deploy/logs
+
+app_domain: devops-engineer-from-scratch-project-313.mooo.com
+
+db_name: bulletins
+db_user: bulletins_app
+
+s3_bucket: "pahar-bulletins-images"
+s3_region: "ru-central1"
+s3_endpoint: "https://storage.yandexcloud.net"
+
+certbot_webroot: /var/www/certbot
+letsencrypt_email: "pirkomihail85@gmail.com"

@@ -1,0 +1,15 @@
+---
+- name: Check for issued certificate
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ app_domain }}/fullchain.pem"
+  register: cert_stat
+
+- name: Render nginx config
+  ansible.builtin.template:
+    src: ansible/templates/nginx.conf.j2
+    dest: "{{ compose_project_dir }}/nginx/default.conf"
+    mode: "0644"
+    owner: "{{ deploy_user | default('deploy') }}"
+  vars:
+    tls_enabled: "{{ cert_stat.stat.exists }}"
+  register: nginx_conf

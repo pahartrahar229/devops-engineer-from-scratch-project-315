@@ -14,7 +14,7 @@ make docker-run
 Приложение будет доступно на `http://localhost:8080`, Swagger UI — `http://localhost:8080/swagger-ui/index.html`, метрики Actuator — на порту `9090`.
 
 Образ публикуется в GitHub Container Registry:
-`ghcr.io/<твой-логин>/project-devops-deploy:latest`
+`ghcr.io/<твой-логин>/devops-engineer-from-scratch-project-315:latest`
 
 # Project DevOps Deploy
 
@@ -100,7 +100,7 @@ All other variables supported by Spring Boot can be overridden the same way; che
 
     ```bash
     make build
-    java -jar build/libs/project-devops-deploy-0.0.1-SNAPSHOT.jar
+    java -jar build/libs/devops-engineer-from-scratch-project-315-0.0.1-SNAPSHOT.jar
     ```
 
 3. Serve the frontend either from the same JVM (see **Build and serve from the Java app**) or deploy it separately (any static hosting/CDN works once `frontend/dist` is uploaded).
@@ -208,7 +208,7 @@ Override the host/port with `MANAGEMENT_SERVER_PORT` if you changed it; no Prome
 ### Production / S3
 
 1. Ensure the S3-related variables from the table above (bucket, region, access/secret keys, optional endpoint/CDN URL) are exported alongside the `prod` profile settings.
-2. Deploy backend (e.g., `java -jar build/libs/project-devops-deploy-0.0.1-SNAPSHOT.jar`).
+2. Deploy backend (e.g., `java -jar build/libs/devops-engineer-from-scratch-project-315-0.0.1-SNAPSHOT.jar`).
 3. In the frontend (local or deployed), upload an image for a bulletin.
 4. Confirm expected behavior:
     - Response from `/api/files/upload` contains a non-empty `key`.

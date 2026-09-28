@@ -26,7 +26,7 @@ lint-fix:
 
 .PHONY: build
 
-IMAGE_NAME ?= pahartrahar228/project-devops-deploy
+IMAGE_NAME ?= pahartrahar228/devops-engineer-from-scratch-project-315
 IMAGE_TAG ?= latest
 
 .PHONY: docker-build docker-run docker-push

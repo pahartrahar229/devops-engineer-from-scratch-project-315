@@ -1,2 +1,2 @@
-rootProject.name = "project-devops-deploy"
+rootProject.name = "devops-engineer-from-scratch-project-315"
 

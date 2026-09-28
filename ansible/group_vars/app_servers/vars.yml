@@ -1,9 +1,9 @@
-docker_image_name: pahartrahar228/project-devops-deploy
+docker_image_name: pahartrahar228/devops-engineer-from-scratch-project-315
 docker_image_tag: latest
 
-compose_project_dir: /opt/project-devops-deploy
-app_data_dir: /opt/project-devops-deploy/data
-app_logs_dir: /opt/project-devops-deploy/logs
+compose_project_dir: /opt/devops-engineer-from-scratch-project-315
+app_data_dir: /opt/devops-engineer-from-scratch-project-315/data
+app_logs_dir: /opt/devops-engineer-from-scratch-project-315/logs
 
 app_domain: devops-engineer-from-scratch-project-313.mooo.com
 

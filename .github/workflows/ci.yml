@@ -75,7 +75,7 @@ jobs:
           context: .
           push: true
           tags: |
-            pahartrahar228/project-devops-deploy:latest
-            pahartrahar228/project-devops-deploy:${{ steps.vars.outputs.sha_short }}
+            pahartrahar228/devops-engineer-from-scratch-project-315:latest
+            pahartrahar228/devops-engineer-from-scratch-project-315:${{ steps.vars.outputs.sha_short }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

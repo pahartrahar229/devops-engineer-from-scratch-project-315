@@ -1,4 +1,4 @@
-# project-devops-deploy
+# devops-engineer-from-scratch-project-315
 
 ## Installation
 

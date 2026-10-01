@@ -91,6 +91,7 @@ All other variables supported by Spring Boot can be overridden the same way; che
     make start     # Vite dev server on http://localhost:5173
     ```
 
+
 2. The dev server proxies `/api` requests to `http://localhost:8080`, so keep the backend running.
 
 ### Production profile on a single host
